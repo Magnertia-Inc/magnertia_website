@@ -93,7 +93,7 @@ export function InquiryModal({
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[90] grid place-items-center overflow-y-auto bg-primary/40 p-4 backdrop-blur-md"
+          className="fixed inset-0 z-[90] grid place-items-center overflow-y-auto bg-primary/40 p-3 sm:p-4 backdrop-blur-md"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -105,25 +105,25 @@ export function InquiryModal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.97 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="glass my-10 w-full max-w-3xl rounded-[28px] p-7 sm:p-10"
+            className="glass my-4 sm:my-10 w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-[24px] sm:rounded-[28px] p-5 sm:p-10"
           >
             {sent ? (
-              <div className="flex flex-col items-center py-16 text-center">
-                <CheckCircle2 className="size-14 text-accent" />
-                <h3 className="mt-6 text-2xl">Enquiry submitted</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
+              <div className="flex flex-col items-center py-12 sm:py-16 text-center">
+                <CheckCircle2 className="size-12 sm:size-14 text-accent" />
+                <h3 className="mt-6 text-xl sm:text-2xl font-bold">Enquiry submitted</h3>
+                <p className="mt-2 text-xs sm:text-sm text-muted-foreground">
                   Thank you — your specifications enquiry has been stored. A Magnertia specialist will contact you shortly.
                 </p>
               </div>
             ) : (
               <>
-                <div className="flex items-start justify-between gap-6">
+                <div className="flex items-start justify-between gap-4 sm:gap-6">
                   <div>
                     <p className="text-xs font-semibold tracking-[0.22em] text-accent uppercase">
                       Product Enquiry
                     </p>
-                    <h3 className="mt-3 text-3xl">Request full specifications</h3>
-                    <p className="mt-2 text-sm text-muted-foreground">
+                    <h3 className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-bold">Request full specifications</h3>
+                    <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-muted-foreground">
                       Share a few details and we'll send the complete technical dossier.
                     </p>
                   </div>

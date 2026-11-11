@@ -67,7 +67,7 @@ function TermsPage() {
                   </li>
                   <li className="flex items-start gap-2.5">
                     <CheckCircle2 className="mt-1 size-4.5 shrink-0 text-accent" />
-                    <span><strong>Foreign Object Safety:</strong> Automatic Foreign Object Detection (F.O.D.) sensors will suspend charging if unapproved metallic or organic objects are detected on the pad.</span>
+                    <span><strong>Foreign Object Safety:</strong> Automatic Foreign Object Detection (F.O.D.) sensors will suspend charging if unapproved metallic or organic objects are detected on the module.</span>
                   </li>
                 </ul>
               </div>

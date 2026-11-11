@@ -42,7 +42,7 @@ app.use(errorHandler);
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 const start = async () => {
   await connectDB();
-  app.listen(PORT, () => {
+  app.listen(Number(PORT), "0.0.0.0", () => {
     console.log(`🚀 Magnertia API server running at http://localhost:${PORT}`);
     console.log(`   Health: http://localhost:${PORT}/api/health`);
   });

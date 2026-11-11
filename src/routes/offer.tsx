@@ -19,6 +19,7 @@ import { BrandButton } from "@/components/site/BrandButton";
 import { InquiryModal } from "@/components/site/InquiryModal";
 import { COMPANY } from "@/data/site";
 import { cn } from "@/lib/utils";
+import { usePersistentTimer } from "@/lib/usePersistentTimer";
 
 export const Route = createFileRoute("/offer")({
   component: OfferPage,
@@ -28,7 +29,7 @@ export const Route = createFileRoute("/offer")({
       {
         name: "description",
         content:
-          "Claim 25% OFF Magnertia wireless pads and robotic charging hardware. Reserve your early-adopter pilot bay with free IoT telemetry and white-glove setup.",
+          "Claim 25% OFF Magnertia wireless module and robotic charging hardware. Reserve your early-adopter pilot bay with free IoT telemetry and white-glove setup.",
       },
       { property: "og:title", content: "25% OFF Launch Offer — Magnertia" },
       { property: "og:description", content: "Limited early-adopter pilot reservations for autonomous EV charging hardware." },
@@ -41,21 +42,8 @@ export const Route = createFileRoute("/offer")({
 function OfferPage() {
   const [inquiry, setInquiry] = useState<string | null>(null);
 
-  // Countdown timer state (Phase 1 deadline)
-  const [timeLeft, setTimeLeft] = useState({ days: 12, hours: 18, minutes: 42, seconds: 15 });
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-        if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59 };
-        if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        if (prev.days > 0) return { ...prev, days: prev.days - 1, hours: 23, minutes: 59, seconds: 59 };
-        return prev;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  // Persistent Countdown timer state (Phase 1 deadline)
+  const timeLeft = usePersistentTimer();
 
   // ROI Calculator state
   const [fleetSize, setFleetSize] = useState(5);
@@ -73,23 +61,27 @@ function OfferPage() {
   const savings = getSavings();
 
   // Custom Hardware Configurator state
-  const [selectedPower, setSelectedPower] = useState("11 kW");
-  const [selectedDeploy, setSelectedDeploy] = useState("Surface Mount");
+  const [selectedPower, setSelectedPower] = useState("3.3 kW");
+  const [selectedDeploy, setSelectedDeploy] = useState("Stand Alone");
   const [selectedSoftware, setSelectedSoftware] = useState("Fleet AI Dashboard");
   const [appliedPromo] = useState("MAG-PILOT2026");
 
   const getConfigPrice = () => {
-    let base = 189000;
-    if (selectedPower === "1.2 kW") base = 49999;
-    if (selectedPower === "30 kW") base = 380000;
-    if (selectedPower === "120 kW") base = 850000;
+    let finalPrice = 35000;
+    if (selectedPower === "3.3 kW") finalPrice = 35000;
+    if (selectedPower === "7.2 kW") finalPrice = 49000;
+    if (selectedPower === "11 kW") finalPrice = 300000;
+    if (selectedPower === "30 kW") finalPrice = 700000;
 
-    let deployExtra = selectedDeploy === "Flush Pad" ? 15000 : selectedDeploy === "Robotic Arm" ? 120000 : 0;
+    if (selectedDeploy === "Robotic Arm") {
+      finalPrice += 80000;
+    }
+
     let softExtra = selectedSoftware === "Fleet AI Dashboard" ? 12000 : selectedSoftware === "OCPP Enterprise API" ? 25000 : 0;
+    finalPrice += softExtra;
 
-    const originalTotal = base + deployExtra + softExtra;
-    const discount = Math.round(originalTotal * 0.25);
-    const finalPrice = originalTotal - discount;
+    const originalTotal = Math.round(finalPrice / 0.75);
+    const discount = originalTotal - finalPrice;
 
     return { originalTotal, discount, finalPrice };
   };
@@ -102,7 +94,7 @@ function OfferPage() {
       <div className="bg-gradient-to-r from-accent via-navy-soft to-primary text-white py-2.5 text-center text-xs font-semibold tracking-wide">
         <div className="shell flex items-center justify-center gap-3">
           <Flame className="size-4 animate-bounce text-amber-300" />
-          <span>Early Adopter Phase 1: <strong>25% OFF</strong> All Hardware & Free 2-Year IoT Telemetry</span>
+          <span>Early Adopter Phase 1: <strong>25% OFF</strong> All Hardware & Free 1-year IoT Telemetry</span>
           <span className="hidden md:inline-block rounded-full bg-white/20 px-2.5 py-0.5 text-[10px] uppercase tracking-wider">
             14 Bays Remaining
           </span>
@@ -138,7 +130,7 @@ function OfferPage() {
                     <Clock className="size-4 text-accent" />
                     Phase 1 Offer Ends In:
                   </div>
-                  <div className="grid grid-cols-4 gap-2 text-center">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
                     {[
                       { label: "Days", val: timeLeft.days },
                       { label: "Hours", val: timeLeft.hours },
@@ -200,7 +192,7 @@ function OfferPage() {
           <div className="mt-12 grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
             {/* Input Controls */}
             <Reveal className="lg:col-span-6">
-              <div className="surface-card rounded-3xl p-8 h-full flex flex-col justify-between border border-border">
+              <div className="surface-card rounded-3xl p-6 sm:p-8 h-full flex flex-col justify-between border border-border">
                 <h3 className="font-display text-xl font-bold text-primary flex items-center gap-2 mb-6">
                   <Sliders className="size-5 text-accent" />
                   Fleet Operational Parameters
@@ -212,9 +204,9 @@ function OfferPage() {
                     <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
                       Vehicle Category
                     </label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       {[
-                        { id: "2w", label: "2W Scooter" },
+                        { id: "2w", label: "4 Wheeler" },
                         { id: "passenger", label: "Passenger EV" },
                         { id: "heavy", label: "Depot / Bus" },
                       ].map((v) => (
@@ -295,7 +287,7 @@ function OfferPage() {
                     <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
                       <span className="text-xs font-semibold text-muted-foreground block mb-1">Annual Energy Savings</span>
                       <span className="font-display text-3xl font-extrabold text-accent">
-                        ₹{savings.annualFuelSavings.toLocaleString("en-IN")}
+                        <span className="inr-symbol">₹</span>{savings.annualFuelSavings.toLocaleString("en-IN")}
                       </span>
                       <span className="text-[11px] text-emerald-600 font-semibold block mt-1">vs fossil fuel operational cost</span>
                     </div>
@@ -351,47 +343,47 @@ function OfferPage() {
           <div className="mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               {
-                title: "Magnertia W2 Smart",
-                category: "Two Wheeler Bay",
-                power: "1.2 kW",
+                title: "Magnertia 3.3 kW Smart",
+                category: "Compact Charger",
+                power: "3.3 kW",
                 discount: "25% OFF",
-                originalPrice: "₹66,600",
-                offerPrice: "₹49,999",
-                features: ["Compact IP67 pad", "SAE J2954 aligned", "Free 2-yr IoT telemetry", "±75 mm tolerance"],
-                badge: "Popular for Fleets",
+                originalPrice: "₹46,667",
+                offerPrice: "₹35,000",
+                features: ["Compact IP67 module", "SAE J2954 aligned", "Free 2-yr IoT telemetry", "±75 mm tolerance"],
+                badge: "Popular Entry",
                 highlight: false,
               },
               {
-                title: "Magnertia P11 Pro",
-                category: "Passenger EV",
-                power: "11 kW",
-                discount: "30% OFF",
-                originalPrice: "₹2,70,000",
-                offerPrice: "₹1,89,000",
-                features: ["IP68 waterproof pad", "Auto-guided alignment", "Free OCPP 2.0 integration", "White-glove installation"],
+                title: "Magnertia 7.2 kW Pro",
+                category: "Fast AC Charger",
+                power: "7.2 kW",
+                discount: "25% OFF",
+                originalPrice: "₹65,333",
+                offerPrice: "₹49,000",
+                features: ["IP68 waterproof module", "Auto-guided alignment", "Free OCPP 2.0 integration", "White-glove installation"],
                 badge: "Best Value",
                 highlight: true,
               },
               {
-                title: "Magnertia R30 Robotic",
-                category: "Autonomous Arm",
-                power: "30 kW DC",
-                discount: "Priority Pass",
-                originalPrice: "₹4,50,000",
-                offerPrice: "₹3,80,000",
-                features: ["6-Axis robotic arm", "Computer vision alignment", "Free structural site survey", "Dedicated account manager"],
-                badge: "Next Gen AI",
+                title: "Magnertia 11 kW Enterprise",
+                category: "Commercial Bay",
+                power: "11 kW",
+                discount: "25% OFF",
+                originalPrice: "₹4,00,000",
+                offerPrice: "₹3,00,000",
+                features: ["Dual-vehicle load balancing", "High-efficiency coupling", "Free OCPP 2.0 integration", "White-glove installation"],
+                badge: "Commercial Grade",
                 highlight: false,
               },
               {
-                title: "Magnertia F120 Heavy",
-                category: "Depot Platform",
-                power: "120 kW",
-                discount: "Custom Pilot",
-                originalPrice: "₹10,50,000",
-                offerPrice: "₹8,50,000",
-                features: ["Depot load balancing", "Scalable to 360 kW", "Founder technical session", "24/7 priority SLA support"],
-                badge: "Enterprise",
+                title: "Magnertia 30 kW Robotic",
+                category: "Autonomous DC Fast",
+                power: "30 kW DC",
+                discount: "25% OFF",
+                originalPrice: "₹9,33,333",
+                offerPrice: "₹7,00,000",
+                features: ["6-Axis robotic arm", "Computer vision alignment", "Free structural site survey", "Dedicated SLA support"],
+                badge: "Next Gen AI",
                 highlight: false,
               },
             ].map((pkg, i) => (
@@ -483,7 +475,7 @@ function OfferPage() {
                   1. Power Rating
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {["1.2 kW", "11 kW", "30 kW", "120 kW"].map((p) => (
+                  {["3.3 kW", "7.2 kW", "11 kW", "30 kW"].map((p) => (
                     <button
                       key={p}
                       onClick={() => setSelectedPower(p)}
@@ -505,8 +497,8 @@ function OfferPage() {
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
                   2. Installation & Alignment Style
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {["Surface Mount", "Flush Pad", "Robotic Arm"].map((d) => (
+                <div className="grid grid-cols-2 gap-3">
+                  {["Stand Alone", "Robotic Arm"].map((d) => (
                     <button
                       key={d}
                       onClick={() => setSelectedDeploy(d)}
@@ -578,12 +570,12 @@ function OfferPage() {
 
                 <div className="rounded-2xl bg-black/40 p-5 border border-white/10 mb-6">
                   <span className="text-[11px] text-slate-400 block line-through">
-                    Standard List Price: ₹{configPrice.originalTotal.toLocaleString("en-IN")}
+                    Standard List Price: <span className="inr-symbol">₹</span>{configPrice.originalTotal.toLocaleString("en-IN")}
                   </span>
                   <div className="flex items-baseline justify-between mt-1">
-                    <span className="text-xs text-emerald-400 font-bold">You Save ₹{configPrice.discount.toLocaleString("en-IN")}</span>
+                    <span className="text-xs text-emerald-400 font-bold">You Save <span className="inr-symbol">₹</span>{configPrice.discount.toLocaleString("en-IN")}</span>
                     <span className="font-display text-3xl font-black text-white">
-                      ₹{configPrice.finalPrice.toLocaleString("en-IN")}
+                      <span className="inr-symbol">₹</span>{configPrice.finalPrice.toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
@@ -613,7 +605,7 @@ function OfferPage() {
           <SectionHeading
             eyebrow="Magnertia Guarantee"
             title="White-glove deployment & full lifetime support"
-            description="We stand behind every wireless charging pad and robotic system built in our facilities."
+            description="We stand behind every wireless charging module and robotic system built in our facilities."
           />
 
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">

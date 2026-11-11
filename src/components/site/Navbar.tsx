@@ -63,12 +63,12 @@ export function Navbar() {
             : "border-b border-transparent bg-transparent py-5 text-primary",
       )}
     >
-      <nav className="shell flex items-center justify-between gap-6">
-        <Link to="/" className="flex items-center gap-3" aria-label="Magnertia home">
+      <nav className="shell flex items-center justify-between gap-4 sm:gap-6">
+        <Link to="/" className="flex items-center gap-2.5 sm:gap-3" aria-label="Magnertia home">
           <motion.span whileHover={{ rotate: -6, scale: 1.08 }} transition={{ type: "spring" }}>
-            <LogoMark className="h-11 w-11 sm:h-12 sm:w-12" />
+            <LogoMark className="h-9 w-9 sm:h-12 sm:w-12" />
           </motion.span>
-          <Wordmark className={cn("hidden sm:block transition-colors", isDarkHero ? "text-white drop-shadow-sm" : "text-primary")} />
+          <Wordmark className={cn("block transition-colors text-lg sm:text-2xl font-extrabold", isDarkHero ? "text-white drop-shadow-sm" : "text-primary")} />
         </Link>
 
         <ul className="hidden items-center gap-8 lg:flex">
@@ -156,8 +156,8 @@ export function Navbar() {
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className="overflow-hidden lg:hidden"
           >
-            <div className="shell pt-6 pb-8">
-              <div className={cn("rounded-3xl p-3 border shadow-2xl backdrop-blur-2xl", isDarkHero ? "bg-slate-900/95 border-white/15" : "glass")}>
+            <div className="shell pt-3 pb-6">
+              <div className={cn("rounded-3xl p-3 border shadow-2xl backdrop-blur-2xl max-h-[78vh] overflow-y-auto", isDarkHero ? "bg-slate-900/95 border-white/15" : "glass")}>
                 {NAV_LINKS.map((l, i) => (
                   <motion.div
                     key={l.to}
@@ -169,13 +169,23 @@ export function Navbar() {
                       to={l.to}
                       onClick={() => setOpen(false)}
                       className={cn(
-                        "block rounded-2xl px-5 py-3.5 text-base font-medium transition-colors",
+                        "flex items-center justify-between rounded-2xl px-5 py-3.5 text-base font-medium transition-colors",
                         isDarkHero
                           ? "text-white hover:bg-white/10"
                           : "text-primary hover:bg-white/70"
                       )}
                     >
-                      {l.label}
+                      <span>{l.label}</span>
+                      {Boolean((l as { badge?: string }).badge) && (
+                        <span className={cn(
+                          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold tracking-wider border",
+                          isDarkHero
+                            ? "bg-sky-400/20 text-sky-200 border-sky-400/40"
+                            : "bg-accent/15 text-accent border-accent/30"
+                        )}>
+                          {(l as { badge?: string }).badge}
+                        </span>
+                      )}
                     </Link>
                   </motion.div>
                 ))}

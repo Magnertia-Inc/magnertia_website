@@ -62,7 +62,7 @@ export function FloatingActions() {
   }, []);
 
   return (
-    <div className="fixed right-6 bottom-7 z-[65] flex flex-col items-end gap-3.5">
+    <div className="fixed right-3.5 bottom-4 sm:right-6 sm:bottom-7 z-[65] flex flex-col items-end gap-2.5 sm:gap-3.5">
       <div className="group relative flex items-center">
         <span className="pointer-events-none absolute right-16 hidden rounded-xl bg-slate-900/90 px-3 py-1.5 text-xs font-semibold text-white whitespace-nowrap opacity-0 shadow-lg backdrop-blur-md transition-all duration-300 group-hover:opacity-100 sm:block">
           Chat on WhatsApp
@@ -72,10 +72,10 @@ export function FloatingActions() {
           target="_blank"
           rel="noreferrer"
           aria-label="Chat on WhatsApp with 7708100362"
-          className="relative flex size-14 items-center justify-center rounded-full bg-gradient-to-tr from-[#128C7E] to-[#25D366] text-white shadow-[0_8px_25px_rgba(37,211,102,0.45)] border border-white/30 transition-all duration-300 hover:scale-110 hover:shadow-[0_10px_30px_rgba(37,211,102,0.65)] active:scale-95"
+          className="relative flex size-12 sm:size-14 items-center justify-center rounded-full bg-gradient-to-tr from-[#128C7E] to-[#25D366] text-white shadow-[0_8px_25px_rgba(37,211,102,0.45)] border border-white/30 transition-all duration-300 hover:scale-110 hover:shadow-[0_10px_30px_rgba(37,211,102,0.65)] active:scale-95"
         >
           <span className="absolute inset-0 size-full animate-ping rounded-full bg-[#25D366]/30 opacity-75" />
-          <WhatsAppIcon className="relative size-7 text-white drop-shadow-sm transition-transform duration-300 group-hover:scale-110" />
+          <WhatsAppIcon className="relative size-6 sm:size-7 text-white drop-shadow-sm transition-transform duration-300 group-hover:scale-110" />
         </a>
       </div>
 
@@ -87,9 +87,9 @@ export function FloatingActions() {
             exit={{ opacity: 0, scale: 0.6, y: 10 }}
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             aria-label="Scroll to top"
-            className="grid size-12 place-items-center rounded-full border border-border bg-white/85 text-primary shadow-md backdrop-blur-xl transition-all duration-300 hover:scale-110 hover:shadow-[var(--shadow-glow)] active:scale-95"
+            className="grid size-10 sm:size-12 place-items-center rounded-full border border-border bg-white/85 text-primary shadow-md backdrop-blur-xl transition-all duration-300 hover:scale-110 hover:shadow-[var(--shadow-glow)] active:scale-95"
           >
-            <ArrowUp className="size-5" />
+            <ArrowUp className="size-4 sm:size-5" />
           </motion.button>
         )}
       </AnimatePresence>

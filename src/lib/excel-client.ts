@@ -221,6 +221,122 @@ export function downloadSpecificExcelSheet(type: "inquiry" | "contact", serverDa
   triggerBlobDownload(wb, filename);
 }
 
+export function downloadCsvSheet(
+  serverInquiries?: Record<string, any>[],
+  serverContacts?: Record<string, any>[],
+  activeTab: "inquiries" | "contacts" | "all" = "all"
+) {
+  if (typeof window === "undefined") return;
+
+  const submissions = getLocalSubmissions();
+
+  let formattedInquiries: Record<string, any>[] = [];
+  if (serverInquiries && serverInquiries.length > 0) {
+    formattedInquiries = serverInquiries.map((data) => ({
+      "Submission Timestamp": data["Submission Timestamp"] || data.timestamp || data.createdAt || "-",
+      "Type": "Enquiry",
+      "Full Name": data["Full Name"] || data.fullName || "",
+      "Email": data["Email"] || data.email || "",
+      "Phone": data["Phone"] || data.phone || "",
+      "Company Name": data["Company Name"] || data.company || "-",
+      "Business Type": data["Business Type"] || data.businessType || "-",
+      "Product Requested": data["Product Requested"] || data.product || "-",
+      "Quantity": data["Quantity"] || data.quantity || "-",
+      "Deployment Timeline": data["Deployment Timeline"] || data.deployment || "-",
+      "GST / Tax ID": data["GST / Tax ID"] || data.gst || "-",
+      "Location / City": data["Location / City"] || data.location || "-",
+      "Fleet Size": data["Fleet Size"] || data.fleetSize || "-",
+      "Primary Purpose": data["Primary Purpose"] || data.purpose || "-",
+      "Requirements & Details": data["Requirements & Details"] || data.requirements || "-",
+    }));
+  } else {
+    const inquiries = submissions.filter((s) => s.type === "inquiry" || !s.type);
+    formattedInquiries = inquiries.map((data) => ({
+      "Submission Timestamp": data.timestamp || "-",
+      "Type": "Enquiry",
+      "Full Name": data.fullName || "",
+      "Email": data.email || "",
+      "Phone": data.phone || "",
+      "Company Name": data.company || "-",
+      "Business Type": data.businessType || "-",
+      "Product Requested": data.product || "-",
+      "Quantity": data.quantity || "-",
+      "Deployment Timeline": data.deployment || "-",
+      "GST / Tax ID": data.gst || "-",
+      "Location / City": data.location || "-",
+      "Fleet Size": data.fleetSize || "-",
+      "Primary Purpose": data.purpose || "-",
+      "Requirements & Details": data.requirements || "-",
+    }));
+  }
+
+  let formattedContacts: Record<string, any>[] = [];
+  if (serverContacts && serverContacts.length > 0) {
+    formattedContacts = serverContacts.map((data) => ({
+      "Submission Timestamp": data["Submission Timestamp"] || data.timestamp || data.createdAt || "-",
+      "Type": "Contact Message",
+      "Full Name": data["Full Name"] || data.fullName || "",
+      "Email": data["Email"] || data.email || "",
+      "Phone": data["Phone"] || data.phone || "",
+      "Message": data["Message"] || data.message || "",
+    }));
+  } else {
+    const contacts = submissions.filter((s) => s.type === "contact");
+    formattedContacts = contacts.map((data) => ({
+      "Submission Timestamp": data.timestamp || "-",
+      "Type": "Contact Message",
+      "Full Name": data.fullName || "",
+      "Email": data.email || "",
+      "Phone": data.phone || "",
+      "Message": data.message || "",
+    }));
+  }
+
+  let exportData: Record<string, any>[] = [];
+  let filename = "Magnertia_Submissions.csv";
+
+  if (activeTab === "inquiries") {
+    exportData = formattedInquiries;
+    filename = "Magnertia_Enquiries.csv";
+  } else if (activeTab === "contacts") {
+    exportData = formattedContacts;
+    filename = "Magnertia_Contact_Messages.csv";
+  } else {
+    exportData = [...formattedInquiries, ...formattedContacts];
+    filename = "Magnertia_All_Submissions.csv";
+  }
+
+  if (exportData.length === 0) {
+    exportData = [{ "Note": "No submissions recorded yet." }];
+  }
+
+  const ws = XLSX.utils.json_to_sheet(exportData);
+  const csvContent = XLSX.utils.sheet_to_csv(ws);
+
+  triggerCsvBlobDownload(csvContent, filename);
+}
+
+function triggerCsvBlobDownload(csvContent: string, filename: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.style.display = "none";
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      if (document.body.contains(a)) {
+        document.body.removeChild(a);
+      }
+      window.URL.revokeObjectURL(url);
+    }, 200);
+  } catch (err) {
+    console.error("CSV blob download failed:", err);
+  }
+}
 
 export function deleteSubmissionLocally(type: "inquiry" | "contact", index: number) {
   if (typeof window === "undefined") return;
@@ -239,4 +355,3 @@ export function deleteSubmissionLocally(type: "inquiry" | "contact", index: numb
     console.error("Failed to delete submission locally:", err);
   }
 }
-

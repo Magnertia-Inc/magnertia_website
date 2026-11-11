@@ -1,6 +1,6 @@
 export const COMPANY = {
   name: "Magnertia",
-  legalName: "Magnertia",
+  legalName: "Magnertia Private Limited",
   short: "Magnertia",
   tagline: "Smarter Charging. Simpler Living.",
   missionStatement: "Making EV Charging Simple",
@@ -32,12 +32,12 @@ export const PRODUCTS: Product[] = [
     category: "Private & Public Stations",
     blurb:
       "Intelligent EV charging stations engineered for apartments, corporate offices, public commercial parking, and highway charging hubs.",
-    power: "11 kW / 22 kW",
-    price: "₹1,80,000",
-    offerPrice: "₹1,35,000",
+    power: "11 kW",
+    price: "₹4,00,000",
+    offerPrice: "₹3,00,000",
     specs: [
       { label: "Launch Offer", value: "25% OFF Early Pilot" },
-      { label: "Power Output", value: "11 kW / 22 kW AC" },
+      { label: "Power Output", value: "11 kW AC" },
       { label: "Ecosystem", value: "Private & Public Charging" },
       { label: "Authentication", value: "Smart App / RFID / OTP" },
       { label: "Software", value: "Business Management Dashboard" },
@@ -53,8 +53,8 @@ export const PRODUCTS: Product[] = [
     blurb:
       "Fully automatic charging systems that eliminate manual cables and human intervention. Effortless, quick, and safe vehicle connection.",
     power: "30 kW DC",
-    price: "₹4,50,000",
-    offerPrice: "₹3,80,000",
+    price: "₹9,33,333",
+    offerPrice: "₹7,00,000",
     specs: [
       { label: "Launch Offer", value: "Priority Early Adopter" },
       { label: "Power Output", value: "30 kW DC Fast Charging" },
@@ -69,15 +69,15 @@ export const PRODUCTS: Product[] = [
   {
     slug: "wireless-charging-technology",
     name: "Wireless Charging Technology",
-    category: "Resonant Inductive Pads",
+    category: "Resonant Inductive module",
     blurb:
       "Cable-free resonant wireless power transfer. Park your vehicle and let it charge automatically without searching for cables or plugging in.",
-    power: "1.2 kW – 11 kW",
-    price: "₹66,600",
-    offerPrice: "₹49,999",
+    power: "3.3 kW – 7.2 kW",
+    price: "₹46,667",
+    offerPrice: "₹35,000",
     specs: [
-      { label: "Launch Price", value: "₹49,999 (25% OFF)" },
-      { label: "Power Range", value: "1.2 kW (2W) to 11 kW (4W)" },
+      { label: "Launch Price", value: "₹35,000 (25% OFF)" },
+      { label: "Power Range", value: "3.3 kW to 7.2 kW" },
       { label: "Efficiency", value: "93% Resonant Coupling" },
       { label: "Air Gap", value: "40 – 180 mm" },
       { label: "Standards", value: "SAE J2954 Aligned" },
