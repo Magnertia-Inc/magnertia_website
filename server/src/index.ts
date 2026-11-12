@@ -1,7 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import connectDB from "./config/db";
+import { initDatabase } from "./config/db";
+import { countAdmins, upsertAdmin } from "./models/admins";
 import inquiryRoutes from "./routes/inquiryRoutes";
 import contactRoutes from "./routes/contactRoutes";
 import authRoutes from "./routes/authRoutes";
@@ -50,16 +51,31 @@ app.use(errorHandler);
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 const start = async () => {
-  if (!isAuthConfigured()) {
-    console.warn(
-      "⚠️  Admin login disabled: set ADMIN_EMAIL, ADMIN_PASSWORD and AUTH_SECRET (32+ chars)."
-    );
-  }
   // Listen on "::" so Railway's private network (IPv6) and IPv4 both reach the API.
   app.listen(Number(PORT), "::", () => {
     console.log(`🚀 Magnertia API server running on port ${PORT}`);
   });
-  await connectDB();
+  await initDatabase(async () => {
+    // Optional bootstrap: ADMIN_EMAIL + ADMIN_PASSWORD create the admin account
+    // (or reset its password). The variables can be removed after the first deploy.
+    const email = process.env.ADMIN_EMAIL?.trim();
+    const password = process.env.ADMIN_PASSWORD;
+    if (email && password) {
+      if (password.length < 10) {
+        console.warn("⚠️ ADMIN_PASSWORD must be at least 10 characters — admin account not updated.");
+      } else {
+        await upsertAdmin(email, password);
+        console.log(`🔐 Admin account ready for ${email.toLowerCase()}`);
+      }
+    }
+    const admins = await countAdmins();
+    if (admins === 0) {
+      console.warn("⚠️ No admin account yet: set ADMIN_EMAIL and ADMIN_PASSWORD on this service.");
+    }
+    if (!isAuthConfigured()) {
+      console.warn("⚠️ Admin login disabled: AUTH_SECRET must be set (32+ characters).");
+    }
+  });
 };
 
 start();

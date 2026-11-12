@@ -31,7 +31,7 @@ export interface InquiryRecord {
   message?: string;
 }
 
-/** MongoDB document shape returned from GET endpoints */
+/** Database record shape returned from GET endpoints */
 export interface SubmissionDocument extends InquiryRecord {
   _id: string;
   createdAt: string;
@@ -42,7 +42,7 @@ export interface SubmissionsResponse {
   success: boolean;
   inquiries: SubmissionDocument[];
   contacts: SubmissionDocument[];
-  isMongoDB?: boolean;
+  isDatabase?: boolean;
 }
 
 // ─── Admin session ───────────────────────────────────────────────────────────
@@ -140,21 +140,21 @@ export async function adminLogin(email: string, password: string): Promise<void>
 }
 
 /**
- * Save an inquiry submission to MongoDB.
+ * Save an inquiry submission to the database.
  */
 export async function saveInquiry(record: InquiryRecord): Promise<{ success: boolean }> {
   return request("POST", "/inquiries", record);
 }
 
 /**
- * Save a contact message to MongoDB.
+ * Save a contact message to the database.
  */
 export async function saveContact(record: InquiryRecord): Promise<{ success: boolean }> {
   return request("POST", "/contacts", record);
 }
 
 /**
- * Fetch all inquiries and contacts from MongoDB (admin only).
+ * Fetch all inquiries and contacts from the database (admin only).
  * Falls back to this browser's local copies only when the API reports the DB is offline.
  */
 export async function getSubmissions(): Promise<SubmissionsResponse> {
@@ -174,19 +174,19 @@ export async function getSubmissions(): Promise<SubmissionsResponse> {
       .filter((s) => s.type === "contact")
       .map((s, idx) => ({ ...s, _id: `local_cnt_${idx}`, createdAt: s.timestamp || new Date().toISOString(), updatedAt: s.timestamp || new Date().toISOString() })) as SubmissionDocument[];
 
-    return { success: true, inquiries, contacts, isMongoDB: false };
+    return { success: true, inquiries, contacts, isDatabase: false };
   }
 
   return {
     success: true,
     inquiries: inquiriesRes.data ?? [],
     contacts: contactsRes.data ?? [],
-    isMongoDB: true,
+    isDatabase: true,
   };
 }
 
 /**
- * Delete a submission by its MongoDB _id or local fallback id (admin only).
+ * Delete a submission by its database id or local fallback id (admin only).
  */
 export async function deleteSubmission(
   type: "inquiry" | "contact",

@@ -1,14 +1,15 @@
 import crypto from "crypto";
 import { Request, Response, NextFunction } from "express";
+import { isDbReady } from "../config/db";
+import { adminExists } from "../models/admins";
 
 /**
- * Minimal stateless admin auth.
+ * Stateless admin sessions.
  *
- * Credentials come from environment variables (never from the frontend bundle):
- *   ADMIN_EMAIL, ADMIN_PASSWORD, AUTH_SECRET
- *
- * A successful login returns a signed token "<expiresAtMs>.<hmac>" that the
- * dashboard sends back as `Authorization: Bearer <token>`.
+ * Admin accounts live in Postgres (`admin_users`, scrypt-hashed passwords).
+ * A successful login returns a signed token "<adminId>.<expiresAtMs>.<hmac>"
+ * that the dashboard sends back as `Authorization: Bearer <token>`.
+ * AUTH_SECRET (32+ chars) signs the tokens.
  */
 
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
@@ -29,40 +30,46 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export function isAuthConfigured(): boolean {
-  return Boolean(process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD && getSecret());
+  return Boolean(getSecret()) && isDbReady();
 }
 
-export function checkCredentials(email: unknown, password: unknown): boolean {
-  if (!isAuthConfigured()) return false;
-  if (typeof email !== "string" || typeof password !== "string") return false;
-  const emailOk = safeEqual(email.trim().toLowerCase(), process.env.ADMIN_EMAIL!.trim().toLowerCase());
-  const passOk = safeEqual(password, process.env.ADMIN_PASSWORD!);
-  return emailOk && passOk;
-}
-
-export function issueToken(): { token: string; expiresAt: number } {
+export function issueToken(adminId: string): { token: string; expiresAt: number } {
   const secret = getSecret();
   if (!secret) throw new Error("AUTH_SECRET is not configured.");
   const expiresAt = Date.now() + TOKEN_TTL_MS;
-  const payload = String(expiresAt);
+  const payload = `${adminId}.${expiresAt}`;
   return { token: `${payload}.${sign(payload, secret)}`, expiresAt };
 }
 
-export function verifyToken(token: string): boolean {
+/** Returns the admin id for a valid, unexpired token, otherwise null. */
+export function verifyToken(token: string): string | null {
   const secret = getSecret();
-  if (!secret) return false;
-  const [payload, signature] = token.split(".");
-  if (!payload || !signature) return false;
-  if (!safeEqual(signature, sign(payload, secret))) return false;
-  const expiresAt = Number(payload);
-  return Number.isFinite(expiresAt) && expiresAt > Date.now();
+  if (!secret) return null;
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  const [adminId, exp, signature] = parts;
+  if (!safeEqual(signature, sign(`${adminId}.${exp}`, secret))) return null;
+  const expiresAt = Number(exp);
+  if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) return null;
+  return adminId;
 }
 
-export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+export async function requireAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
   const header = req.headers.authorization ?? "";
   const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
-  if (!token || !verifyToken(token)) {
+  const adminId = token ? verifyToken(token) : null;
+  if (!adminId) {
     res.status(401).json({ success: false, error: "Unauthorized." });
+    return;
+  }
+  try {
+    // A deleted admin loses access immediately.
+    if (!(await adminExists(adminId))) {
+      res.status(401).json({ success: false, error: "Unauthorized." });
+      return;
+    }
+  } catch (error) {
+    next(error);
     return;
   }
   next();

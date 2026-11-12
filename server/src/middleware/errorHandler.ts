@@ -13,15 +13,9 @@ export const errorHandler = (
 ): void => {
   console.error("❌ Error:", err.message);
 
-  // Mongoose validation error
-  if (err.name === "ValidationError") {
-    res.status(400).json({ success: false, error: err.message });
-    return;
-  }
-
-  // Mongoose cast error (invalid ObjectId)
-  if (err.name === "CastError") {
-    res.status(400).json({ success: false, error: "Invalid ID format." });
+  // Malformed JSON body
+  if (err instanceof SyntaxError && "body" in err) {
+    res.status(400).json({ success: false, error: "Invalid request body." });
     return;
   }
 

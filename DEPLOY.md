@@ -1,11 +1,12 @@
 # Deploying Magnertia to Railway
 
-The site runs as **two Railway services from this one repo**:
+The site runs as **two Railway services from this one repo, plus Railway Postgres**:
 
 | Service | Root directory | Healthcheck | Public? | What it is |
 |---|---|---|---|---|
 | `web` | `/` | `/` | Yes, custom domain | TanStack Start SSR site (`Dockerfile` in repo root) |
-| `api` | `/server` | `/api/health` | **No** (private network only) | Express + MongoDB API (`server/Dockerfile`) |
+| `api` | `/server` | `/api/health` | **No** (private network only) | Express API (`server/Dockerfile`) |
+| `Postgres` | — | — | **No** | Railway PostgreSQL: enquiries, contact messages, admin accounts |
 
 Service settings live in Railway itself (Railway's `railway.json` config files are deprecated and
 stop being read on 2026-12-01). Railway detects the `Dockerfile` in each root directory automatically.
@@ -13,12 +14,11 @@ stop being read on 2026-12-01). Railway detects the `Dockerfile` in each root di
 The browser only talks to `web`. Every request to `/api/*` is forwarded by `web` to `api`
 over Railway's private network (see `src/server.ts`), so there is one domain and no CORS setup.
 
-## 1. MongoDB Atlas
+## 1. Database
 
-1. **Rotate the database user's password.** The old connection string was committed to this
-   public repo and must be treated as leaked.
-2. Network Access → add `0.0.0.0/0` (Railway has no fixed outbound IP).
-3. Copy the new connection string (`mongodb+srv://...`). Only paste it into Railway Variables.
+Railway PostgreSQL (New → Database → PostgreSQL in the same project). The API creates its tables
+(`inquiries`, `contacts`, `admin_users`) automatically on startup. Admin passwords are stored as
+scrypt hashes, never in plain text.
 
 ## 2. Create the Railway project
 
@@ -35,11 +35,11 @@ over Railway's private network (see `src/server.ts`), so there is one domain and
 
 | Variable | Value |
 |---|---|
-| `MONGODB_URI` | new Atlas connection string |
+| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (reference — private network, no password to copy) |
 | `PORT` | `4000` |
 | `NODE_ENV` | `production` |
-| `ADMIN_EMAIL` | admin login email |
-| `ADMIN_PASSWORD` | strong admin password |
+| `ADMIN_EMAIL` | admin login email (creates the admin account on startup) |
+| `ADMIN_PASSWORD` | strong admin password, 10+ chars (stored hashed; remove the variable after the first deploy, set it again to reset the password) |
 | `AUTH_SECRET` | 64 random hex chars: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `CORS_ORIGIN` | `https://www.magnertia.in` (not strictly needed — same-origin) |
 
@@ -57,7 +57,7 @@ Open the `web` service's generated `*.up.railway.app` URL:
 - All pages load.
 - `/api/health` returns `{"status":"ok"}`.
 - `/api/inquiries` returns `401 Unauthorized` (customer data is not public).
-- Submit a test enquiry and a contact message → log in at `/login` → both appear and show "MongoDB Connected".
+- Submit a test enquiry and a contact message → log in at `/login` → both appear and show "Database Connected".
 
 ## 5. Custom domain (GoDaddy)
 

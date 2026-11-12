@@ -76,7 +76,7 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRecord, setSelectedRecord] = useState<Record<string, any> | null>(null);
-  const [isMongoDBConnected, setIsMongoDBConnected] = useState<boolean>(true);
+  const [isDbConnected, setIsDbConnected] = useState<boolean>(true);
 
   useEffect(() => {
     const syncAuth = () => {
@@ -102,10 +102,10 @@ function LoginPage() {
       if (res && res.success) {
         setInquiries(res.inquiries || []);
         setContacts(res.contacts || []);
-        setIsMongoDBConnected(res.isMongoDB !== false);
+        setIsDbConnected(res.isDatabase !== false);
       } else {
-        toast.error("Could not fetch data from MongoDB.");
-        setIsMongoDBConnected(false);
+        toast.error("Could not fetch data from the database.");
+        setIsDbConnected(false);
       }
     } catch (err) {
       console.error("Failed to load records:", err);
@@ -114,7 +114,7 @@ function LoginPage() {
         setIsAuthenticated(false);
       } else {
         toast.error("Failed to reach the API server.");
-        setIsMongoDBConnected(false);
+        setIsDbConnected(false);
       }
     } finally {
       setLoading(false);
@@ -180,14 +180,14 @@ function LoginPage() {
   };
 
   const handleDeleteRecord = async (id: string) => {
-    if (confirm("Are you sure you want to delete this submission from MongoDB?")) {
+    if (confirm("Are you sure you want to permanently delete this submission?")) {
       try {
         const type = activeTab === "inquiries" ? "inquiry" : "contact";
         const res = await deleteSubmission(type, id);
         if (res && res.success) {
           toast.success("Submission deleted successfully!");
         } else {
-          toast.error("Failed to delete from MongoDB.");
+          toast.error("Failed to delete the submission.");
         }
         fetchData();
       } catch (err) {
@@ -291,10 +291,10 @@ function LoginPage() {
                     </h1>
                     <div className="mt-0.5 sm:mt-1 flex items-center gap-2 text-xs font-display">
                       <span className="text-muted-foreground text-[11px] sm:text-xs">Database:</span>
-                      {isMongoDBConnected ? (
+                      {isDbConnected ? (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2 sm:px-2.5 py-0.5 text-[0.65rem] sm:text-[0.7rem] font-bold text-emerald-700 font-display">
                           <span className="size-1.5 sm:size-2 rounded-full bg-emerald-500 animate-pulse" />
-                          MongoDB Connected
+                          Database Connected
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-2 sm:px-2.5 py-0.5 text-[0.65rem] sm:text-[0.7rem] font-bold text-amber-700 font-display">
@@ -415,7 +415,7 @@ function LoginPage() {
                     <tr>
                       <td colSpan={5} className="py-12 sm:py-14 text-center text-muted-foreground font-display">
                         <RefreshCw className="mx-auto size-5 sm:size-6 animate-spin text-accent" />
-                        <p className="mt-2 text-xs font-medium font-display">Loading records from MongoDB...</p>
+                        <p className="mt-2 text-xs font-medium font-display">Loading records...</p>
                       </td>
                     </tr>
                   ) : filteredList.length === 0 ? (
