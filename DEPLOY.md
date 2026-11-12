@@ -2,10 +2,13 @@
 
 The site runs as **two Railway services from this one repo**:
 
-| Service | Root directory | Config file | Public? | What it is |
+| Service | Root directory | Healthcheck | Public? | What it is |
 |---|---|---|---|---|
-| `web` | `/` | `/railway.json` | Yes, custom domain | TanStack Start SSR site (Dockerfile in repo root) |
-| `api` | `/server` | `/server/railway.json` | **No** (private network only) | Express + MongoDB API (`server/Dockerfile`) |
+| `web` | `/` | `/` | Yes, custom domain | TanStack Start SSR site (`Dockerfile` in repo root) |
+| `api` | `/server` | `/api/health` | **No** (private network only) | Express + MongoDB API (`server/Dockerfile`) |
+
+Service settings live in Railway itself (Railway's `railway.json` config files are deprecated and
+stop being read on 2026-12-01). Railway detects the `Dockerfile` in each root directory automatically.
 
 The browser only talks to `web`. Every request to `/api/*` is forwarded by `web` to `api`
 over Railway's private network (see `src/server.ts`), so there is one domain and no CORS setup.
@@ -20,9 +23,10 @@ over Railway's private network (see `src/server.ts`), so there is one domain and
 ## 2. Create the Railway project
 
 1. New Project → Deploy from GitHub repo → `Magnertia-Inc/magnertia_website`.
-2. That first service is **web**. Settings: Root Directory `/`, Config-as-code path `/railway.json`.
+2. That first service is **web**. Settings: Root Directory `/`, Healthcheck Path `/`,
+   Watch Paths `/**` and `!/server/**`.
 3. Add a second service from the same repo and name it **api**. Settings: Root Directory `/server`,
-   Config-as-code path `/server/railway.json`. Do **not** generate a public domain for it.
+   Healthcheck Path `/api/health`, Watch Paths `/server/**`. Do **not** generate a public domain for it.
 4. Set both services' branch to the branch you deploy from.
 
 ## 3. Variables
