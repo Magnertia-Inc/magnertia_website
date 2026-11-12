@@ -25,7 +25,15 @@ import {
 import { Reveal, Particles } from "@/components/site/motion-kit";
 import { BrandButton } from "@/components/site/BrandButton";
 import { LogoMark } from "@/components/site/LogoMark";
-import { getSubmissions, deleteSubmission, type SubmissionDocument } from "@/lib/api-client";
+import {
+  getSubmissions,
+  deleteSubmission,
+  adminLogin,
+  clearAdminSession,
+  isAdminLoggedIn,
+  UnauthorizedError,
+  type SubmissionDocument,
+} from "@/lib/api-client";
 import { downloadExcelSheet, downloadCsvSheet } from "@/lib/excel-client";
 
 export const Route = createFileRoute("/login")({
@@ -55,9 +63,6 @@ const field =
   "w-full rounded-2xl border border-border bg-white/70 px-4 py-3.5 text-sm outline-none backdrop-blur-md transition-all placeholder:text-muted-foreground/70 focus:border-accent focus:shadow-[var(--shadow-glow)] font-display";
 const labelCls = "mb-2 block text-xs font-semibold tracking-[0.14em] text-primary/70 uppercase font-display";
 
-const ADMIN_EMAIL = "admin@gmail.com";
-const ADMIN_PASS = "123456";
-
 function LoginPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState("");
@@ -75,7 +80,7 @@ function LoginPage() {
 
   useEffect(() => {
     const syncAuth = () => {
-      const sessionAuth = sessionStorage.getItem("magnertia_admin_auth") === "true";
+      const sessionAuth = isAdminLoggedIn();
       setIsAuthenticated(sessionAuth);
       if (sessionAuth) {
         fetchData();
@@ -104,14 +109,21 @@ function LoginPage() {
       }
     } catch (err) {
       console.error("Failed to load records:", err);
-      toast.error("Failed to reach the API server.");
-      setIsMongoDBConnected(false);
+      if (err instanceof UnauthorizedError) {
+        toast.error(err.message);
+        setIsAuthenticated(false);
+      } else {
+        toast.error("Failed to reach the API server.");
+        setIsMongoDBConnected(false);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  const [signingIn, setSigningIn] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const parsed = schema.safeParse({ email, password });
     if (!parsed.success) {
@@ -121,26 +133,29 @@ function LoginPage() {
       return;
     }
 
-    if (email.trim().toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASS) {
+    setSigningIn(true);
+    try {
+      await adminLogin(parsed.data.email, parsed.data.password);
       setErrors({});
+      setPassword("");
       setIsAuthenticated(true);
-      sessionStorage.setItem("magnertia_admin_auth", "true");
-      window.dispatchEvent(new CustomEvent("admin_auth_change"));
       toast.success("Signed in — welcome to Admin Dashboard.");
       fetchData();
-    } else {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Invalid email or password.";
       setErrors({
-        email: "Invalid email or password.",
+        email: message,
         password: "Please check your credentials.",
       });
-      toast.error("Invalid email or password.");
+      toast.error(message);
+    } finally {
+      setSigningIn(false);
     }
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    sessionStorage.removeItem("magnertia_admin_auth");
-    window.dispatchEvent(new CustomEvent("admin_auth_change"));
+    clearAdminSession();
     toast.info("Logged out.");
   };
 
@@ -177,7 +192,8 @@ function LoginPage() {
         fetchData();
       } catch (err) {
         console.error("Delete error:", err);
-        toast.error("Failed to delete record.");
+        toast.error(err instanceof UnauthorizedError ? err.message : "Failed to delete record.");
+        if (err instanceof UnauthorizedError) setIsAuthenticated(false);
       }
     }
   };
@@ -244,8 +260,8 @@ function LoginPage() {
                     </label>
                     <a href="#" className="text-xs text-accent underline-link">Forgot password?</a>
                   </div>
-                  <BrandButton type="submit" variant="login" size="lg" className="mt-2 w-full shadow-xl cursor-pointer py-3 text-xs sm:text-base">
-                    Sign In
+                  <BrandButton type="submit" variant="login" size="lg" disabled={signingIn} className="mt-2 w-full shadow-xl cursor-pointer py-3 text-xs sm:text-base">
+                    {signingIn ? "Signing in…" : "Sign In"}
                   </BrandButton>
                 </form>
 

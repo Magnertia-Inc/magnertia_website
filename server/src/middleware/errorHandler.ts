@@ -26,8 +26,10 @@ export const errorHandler = (
   }
 
   const statusCode = err.status ?? 500;
+  // Don't leak internal error details (DB hostnames etc.) to the public in production.
+  const hideDetails = statusCode >= 500 && process.env.NODE_ENV === "production";
   res.status(statusCode).json({
     success: false,
-    error: err.message || "Internal Server Error",
+    error: hideDetails ? "Internal Server Error" : err.message || "Internal Server Error",
   });
 };

@@ -38,6 +38,7 @@ type Props = VariantProps<typeof brandButton> & {
   arrow?: boolean;
   onClick?: () => void;
   type?: "button" | "submit";
+  disabled?: boolean;
 };
 
 export function BrandButton({
@@ -50,6 +51,7 @@ export function BrandButton({
   arrow = true,
   onClick,
   type = "button",
+  disabled,
 }: Props) {
   const inner = (
     <>
@@ -79,7 +81,7 @@ export function BrandButton({
     );
   }
   return (
-    <button type={type} onClick={onClick} className={cls}>
+    <button type={type} onClick={onClick} disabled={disabled} className={cls}>
       {inner}
     </button>
   );

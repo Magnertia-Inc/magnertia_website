@@ -30,8 +30,11 @@ export const tryConnectMongoDB = async (): Promise<boolean> => {
   } catch (error) {
     console.error("⚠️ MongoDB Atlas connection error:", (error as Error).message);
     isConnecting = false;
-    
-    // Try local fallback if Atlas fails
+
+    // Local MongoDB fallback is for development only.
+    if (process.env.NODE_ENV === "production") {
+      return false;
+    }
     try {
       const localConn = await mongoose.connect("mongodb://127.0.0.1:27017/magnertia", {
         serverSelectionTimeoutMS: 2000,
