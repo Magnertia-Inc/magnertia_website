@@ -25,7 +25,15 @@ import {
 import { Reveal, Particles } from "@/components/site/motion-kit";
 import { BrandButton } from "@/components/site/BrandButton";
 import { LogoMark } from "@/components/site/LogoMark";
-import { getSubmissions, deleteSubmission, type SubmissionDocument } from "@/lib/api-client";
+import {
+  getSubmissions,
+  deleteSubmission,
+  adminLogin,
+  clearAdminSession,
+  isAdminLoggedIn,
+  UnauthorizedError,
+  type SubmissionDocument,
+} from "@/lib/api-client";
 import { downloadExcelSheet, downloadCsvSheet } from "@/lib/excel-client";
 
 export const Route = createFileRoute("/login")({
@@ -55,9 +63,6 @@ const field =
   "w-full rounded-2xl border border-border bg-white/70 px-4 py-3.5 text-sm outline-none backdrop-blur-md transition-all placeholder:text-muted-foreground/70 focus:border-accent focus:shadow-[var(--shadow-glow)] font-display";
 const labelCls = "mb-2 block text-xs font-semibold tracking-[0.14em] text-primary/70 uppercase font-display";
 
-const ADMIN_EMAIL = "admin@gmail.com";
-const ADMIN_PASS = "123456";
-
 function LoginPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState("");
@@ -71,11 +76,11 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRecord, setSelectedRecord] = useState<Record<string, any> | null>(null);
-  const [isMongoDBConnected, setIsMongoDBConnected] = useState<boolean>(true);
+  const [isDbConnected, setIsDbConnected] = useState<boolean>(true);
 
   useEffect(() => {
     const syncAuth = () => {
-      const sessionAuth = sessionStorage.getItem("magnertia_admin_auth") === "true";
+      const sessionAuth = isAdminLoggedIn();
       setIsAuthenticated(sessionAuth);
       if (sessionAuth) {
         fetchData();
@@ -97,21 +102,28 @@ function LoginPage() {
       if (res && res.success) {
         setInquiries(res.inquiries || []);
         setContacts(res.contacts || []);
-        setIsMongoDBConnected(res.isMongoDB !== false);
+        setIsDbConnected(res.isDatabase !== false);
       } else {
-        toast.error("Could not fetch data from MongoDB.");
-        setIsMongoDBConnected(false);
+        toast.error("Could not fetch data from the database.");
+        setIsDbConnected(false);
       }
     } catch (err) {
       console.error("Failed to load records:", err);
-      toast.error("Failed to reach the API server.");
-      setIsMongoDBConnected(false);
+      if (err instanceof UnauthorizedError) {
+        toast.error(err.message);
+        setIsAuthenticated(false);
+      } else {
+        toast.error("Failed to reach the API server.");
+        setIsDbConnected(false);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  const [signingIn, setSigningIn] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const parsed = schema.safeParse({ email, password });
     if (!parsed.success) {
@@ -121,26 +133,29 @@ function LoginPage() {
       return;
     }
 
-    if (email.trim().toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASS) {
+    setSigningIn(true);
+    try {
+      await adminLogin(parsed.data.email, parsed.data.password);
       setErrors({});
+      setPassword("");
       setIsAuthenticated(true);
-      sessionStorage.setItem("magnertia_admin_auth", "true");
-      window.dispatchEvent(new CustomEvent("admin_auth_change"));
       toast.success("Signed in — welcome to Admin Dashboard.");
       fetchData();
-    } else {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Invalid email or password.";
       setErrors({
-        email: "Invalid email or password.",
+        email: message,
         password: "Please check your credentials.",
       });
-      toast.error("Invalid email or password.");
+      toast.error(message);
+    } finally {
+      setSigningIn(false);
     }
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    sessionStorage.removeItem("magnertia_admin_auth");
-    window.dispatchEvent(new CustomEvent("admin_auth_change"));
+    clearAdminSession();
     toast.info("Logged out.");
   };
 
@@ -165,19 +180,20 @@ function LoginPage() {
   };
 
   const handleDeleteRecord = async (id: string) => {
-    if (confirm("Are you sure you want to delete this submission from MongoDB?")) {
+    if (confirm("Are you sure you want to permanently delete this submission?")) {
       try {
         const type = activeTab === "inquiries" ? "inquiry" : "contact";
         const res = await deleteSubmission(type, id);
         if (res && res.success) {
           toast.success("Submission deleted successfully!");
         } else {
-          toast.error("Failed to delete from MongoDB.");
+          toast.error("Failed to delete the submission.");
         }
         fetchData();
       } catch (err) {
         console.error("Delete error:", err);
-        toast.error("Failed to delete record.");
+        toast.error(err instanceof UnauthorizedError ? err.message : "Failed to delete record.");
+        if (err instanceof UnauthorizedError) setIsAuthenticated(false);
       }
     }
   };
@@ -244,8 +260,8 @@ function LoginPage() {
                     </label>
                     <a href="#" className="text-xs text-accent underline-link">Forgot password?</a>
                   </div>
-                  <BrandButton type="submit" variant="login" size="lg" className="mt-2 w-full shadow-xl cursor-pointer py-3 text-xs sm:text-base">
-                    Sign In
+                  <BrandButton type="submit" variant="login" size="lg" disabled={signingIn} className="mt-2 w-full shadow-xl cursor-pointer py-3 text-xs sm:text-base">
+                    {signingIn ? "Signing in…" : "Sign In"}
                   </BrandButton>
                 </form>
 
@@ -275,10 +291,10 @@ function LoginPage() {
                     </h1>
                     <div className="mt-0.5 sm:mt-1 flex items-center gap-2 text-xs font-display">
                       <span className="text-muted-foreground text-[11px] sm:text-xs">Database:</span>
-                      {isMongoDBConnected ? (
+                      {isDbConnected ? (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2 sm:px-2.5 py-0.5 text-[0.65rem] sm:text-[0.7rem] font-bold text-emerald-700 font-display">
                           <span className="size-1.5 sm:size-2 rounded-full bg-emerald-500 animate-pulse" />
-                          MongoDB Connected
+                          Database Connected
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-2 sm:px-2.5 py-0.5 text-[0.65rem] sm:text-[0.7rem] font-bold text-amber-700 font-display">
@@ -399,7 +415,7 @@ function LoginPage() {
                     <tr>
                       <td colSpan={5} className="py-12 sm:py-14 text-center text-muted-foreground font-display">
                         <RefreshCw className="mx-auto size-5 sm:size-6 animate-spin text-accent" />
-                        <p className="mt-2 text-xs font-medium font-display">Loading records from MongoDB...</p>
+                        <p className="mt-2 text-xs font-medium font-display">Loading records...</p>
                       </td>
                     </tr>
                   ) : filteredList.length === 0 ? (

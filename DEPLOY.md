@@ -1,0 +1,84 @@
+# Deploying Magnertia to Railway
+
+The site runs as **two Railway services from this one repo, plus Railway Postgres**:
+
+| Service | Root directory | Healthcheck | Public? | What it is |
+|---|---|---|---|---|
+| `web` | `/` | `/` | Yes, custom domain | TanStack Start SSR site (`Dockerfile` in repo root) |
+| `api` | `/server` | `/api/health` | **No** (private network only) | Express API (`server/Dockerfile`) |
+| `Postgres` | — | — | **No** | Railway PostgreSQL: enquiries, contact messages, admin accounts |
+
+Service settings live in Railway itself (Railway's `railway.json` config files are deprecated and
+stop being read on 2026-12-01). Railway detects the `Dockerfile` in each root directory automatically.
+
+The browser only talks to `web`. Every request to `/api/*` is forwarded by `web` to `api`
+over Railway's private network (see `src/server.ts`), so there is one domain and no CORS setup.
+
+## 1. Database
+
+Railway PostgreSQL (New → Database → PostgreSQL in the same project). The API creates its tables
+(`inquiries`, `contacts`, `admin_users`) automatically on startup. Admin passwords are stored as
+scrypt hashes, never in plain text.
+
+## 2. Create the Railway project
+
+1. New Project → Deploy from GitHub repo → `Magnertia-Inc/magnertia_website`.
+2. That first service is **web**. Settings: Root Directory `/`, Healthcheck Path `/`,
+   Watch Paths `/**` and `!/server/**`.
+3. Add a second service from the same repo and name it **api**. Settings: Root Directory `/server`,
+   Healthcheck Path `/api/health`, Watch Paths `/server/**`. Do **not** generate a public domain for it.
+4. Set both services' branch to the branch you deploy from.
+
+## 3. Variables
+
+**api**
+
+| Variable | Value |
+|---|---|
+| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (reference — private network, no password to copy) |
+| `PORT` | `4000` |
+| `NODE_ENV` | `production` |
+| `ADMIN_EMAIL` | admin login email (creates the admin account on startup) |
+| `ADMIN_PASSWORD` | strong admin password, 10+ chars (stored hashed; remove the variable after the first deploy, set it again to reset the password) |
+| `AUTH_SECRET` | 64 random hex chars: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `CORS_ORIGIN` | `https://www.magnertia.in` (not strictly needed — same-origin) |
+
+**web**
+
+| Variable | Value |
+|---|---|
+| `API_URL` | `http://${{api.RAILWAY_PRIVATE_DOMAIN}}:4000` |
+| `NODE_ENV` | `production` |
+
+## 4. Check before adding the domain
+
+Open the `web` service's generated `*.up.railway.app` URL:
+
+- All pages load.
+- `/api/health` returns `{"status":"ok"}`.
+- `/api/inquiries` returns `401 Unauthorized` (customer data is not public).
+- Submit a test enquiry and a contact message → log in at `/login` → both appear and show "Database Connected".
+
+## 5. Custom domain (GoDaddy)
+
+In Railway → `web` → Settings → Networking → Custom Domain, add `www.magnertia.in`.
+Railway shows a **CNAME** target and a **TXT** verification record. Add both in GoDaddy DNS.
+
+GoDaddy can't CNAME the bare domain (`magnertia.in`), so pick one:
+
+- **Option A (recommended): move DNS to Cloudflare** (free). Change GoDaddy nameservers to
+  Cloudflare's, then add both `magnertia.in` and `www.magnertia.in` in Railway and create the
+  CNAME/TXT records in Cloudflare with the proxy (orange cloud) **off**.
+- **Option B: stay on GoDaddy.** Add only `www.magnertia.in` in Railway, and use GoDaddy
+  Domain → Forwarding to send `magnertia.in` → `https://www.magnertia.in` (301, permanent).
+
+Railway issues the HTTPS certificate automatically once DNS resolves (usually minutes, up to a few hours).
+
+## Local development
+
+```bash
+npm install
+npm run setup:server
+cp server/.env.example server/.env   # fill in values
+npm run dev                          # Vite on :5173 + API on :4000
+```

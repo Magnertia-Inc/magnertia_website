@@ -108,14 +108,16 @@ function ContactUsPage() {
     };
 
     setErrors({});
-    saveSubmissionLocally(record);
-    setLastSubmittedRecord(record);
 
     try {
       await saveContact(record);
     } catch (err) {
-      console.error("Failed to save contact to MongoDB:", err);
+      console.error("Failed to save contact message:", err);
+      toast.error("We couldn't send your message right now. Please try again in a moment.");
+      return;
     }
+    saveSubmissionLocally(record);
+    setLastSubmittedRecord(record);
 
     form.reset();
     setSent(true);

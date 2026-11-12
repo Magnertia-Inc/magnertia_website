@@ -7,7 +7,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_module
+node_modules/
 dist
 dist-ssr
 .output
@@ -33,7 +33,12 @@ dist-ssr
 
 # Express backend
 server/.env
-server/node_module/
+server/node_modules/
 server/dist/
 server/test-db.js
 push-to-github.bat
+
+# Environment files
+.env
+.env.*
+!.env.example

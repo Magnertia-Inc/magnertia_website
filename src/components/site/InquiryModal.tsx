@@ -72,14 +72,16 @@ export function InquiryModal({
     };
 
     setErrors({});
-    saveSubmissionLocally(record);
-    setLastSubmittedRecord(record);
 
     try {
       await saveInquiry(record);
     } catch (err) {
-      console.error("Failed to save inquiry to MongoDB:", err);
+      console.error("Failed to save inquiry:", err);
+      toast.error("We couldn't send your enquiry right now. Please try again in a moment.");
+      return;
     }
+    saveSubmissionLocally(record);
+    setLastSubmittedRecord(record);
 
     setSent(true);
     toast.success("Enquiry received — stored securely for our admin team.");

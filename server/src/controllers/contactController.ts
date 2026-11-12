@@ -1,61 +1,50 @@
 import { Request, Response, NextFunction } from "express";
-import mongoose from "mongoose";
-import Contact from "../models/Contact";
-import { tryConnectMongoDB } from "../config/db";
+import { isDbReady } from "../config/db";
+import { contactSchema, insertContact, listContacts, removeContact, isUuid } from "../models/submissions";
 
 // POST /api/contacts
-export const createContact = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+export const createContact = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    await tryConnectMongoDB();
-    const contact = new Contact({ ...req.body, type: "contact" });
-    await contact.save();
+    if (!isDbReady()) {
+      res.status(503).json({ success: false, error: "Database is not available. Please try again shortly." });
+      return;
+    }
+    const parsed = contactSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: "Please check the form fields and try again." });
+      return;
+    }
+    const contact = await insertContact(parsed.data);
     res.status(201).json({ success: true, data: contact });
   } catch (error) {
     next(error);
   }
 };
 
-// GET /api/contacts
-export const getContacts = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+// GET /api/contacts (admin)
+export const getContacts = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const isConnected = await tryConnectMongoDB();
-    if (!isConnected || mongoose.connection.readyState !== 1) {
+    if (!isDbReady()) {
       res.status(200).json({ success: true, data: [], connected: false });
       return;
     }
-    const contacts = await Contact.find().sort({ createdAt: -1 }).lean();
+    const contacts = await listContacts();
     res.status(200).json({ success: true, data: contacts, connected: true });
   } catch (error) {
     next(error);
   }
 };
 
-// DELETE /api/contacts/:id
-export const deleteContact = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+// DELETE /api/contacts/:id (admin)
+export const deleteContact = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      res.status(200).json({ success: true, message: "Record removed." });
+    if (!isUuid(id)) {
+      res.status(400).json({ success: false, error: "Invalid ID format." });
       return;
     }
-    const deleted = await Contact.findByIdAndDelete(id);
-    if (!deleted) {
-      res.status(200).json({ success: true, message: "Record removed." });
-      return;
-    }
-    res.status(200).json({ success: true, message: "Contact deleted from MongoDB." });
+    const deleted = await removeContact(id);
+    res.status(200).json({ success: true, message: deleted ? "Contact deleted." : "Record already removed." });
   } catch (error) {
     next(error);
   }

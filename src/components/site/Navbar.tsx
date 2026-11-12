@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { LogoMark, Wordmark } from "./LogoMark";
 import { BrandButton } from "./BrandButton";
 import { NAV_LINKS } from "@/data/site";
+import { isAdminLoggedIn, clearAdminSession } from "@/lib/api-client";
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -18,7 +19,7 @@ export function Navbar() {
 
   const checkAuthStatus = () => {
     if (typeof window !== "undefined") {
-      setIsAuth(sessionStorage.getItem("magnertia_admin_auth") === "true");
+      setIsAuth(isAdminLoggedIn());
     }
   };
 
@@ -36,11 +37,10 @@ export function Navbar() {
   useMotionValueEvent(scrollY, "change", (v) => setScrolled(v > 24));
 
   const handleAuthAction = () => {
-    const currentAuth = typeof window !== "undefined" && sessionStorage.getItem("magnertia_admin_auth") === "true";
+    const currentAuth = typeof window !== "undefined" && isAdminLoggedIn();
     if (currentAuth) {
-      sessionStorage.removeItem("magnertia_admin_auth");
+      clearAdminSession();
       setIsAuth(false);
-      window.dispatchEvent(new CustomEvent("admin_auth_change"));
       toast.info("Logged out successfully.");
       navigate({ to: "/login" });
     } else {
